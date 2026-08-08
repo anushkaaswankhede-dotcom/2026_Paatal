@@ -243,3 +243,98 @@
 <body>
 <div id="app"></div>
 <div id="toast" role="status" aria-live="polite"></div>
+<script>
+/* =========================================================
+   SEHATVERSE — CORE DEMO
+   Front-end only reference implementation of the priority-1/2
+   product loop. State lives in memory (no localStorage per
+   artifact rules) — a real deployment persists this via the
+   Supabase schema in /supabase/schema.sql.
+   ========================================================= */
+
+/* ---------------- CONFIG / CONTENT ---------------- */
+
+const AGE_GROUPS = [
+  {id:'k', range:'3–12', name:'Sehat Superstars', emo:'🦄', grad:'linear-gradient(160deg,#FF9AD5,#7BD5FF)',
+   desc:'Magical adventure world with friendly animal guides.'},
+  {id:'teen', range:'12–16', name:'Sehat Squad', emo:'⚡', grad:'linear-gradient(160deg,#FFD23F,#FF6B6B)',
+   desc:'Action-hero missions and battle-style challenges.'},
+  {id:'lab', range:'16–18', name:'Health Lab', emo:'🧬', grad:'linear-gradient(160deg,#7B61FF,#33D6C4)',
+   desc:'Holographic science lab with real experiments.'},
+  {id:'guard', range:'18–23', name:'Sehat Guardians', emo:'🚀', grad:'linear-gradient(160deg,#3355FF,#33D6C4)',
+   desc:'Futuristic city, modern lifestyle missions.'},
+  {id:'pro', range:'23–30', name:'Wellness Pro', emo:'💼', grad:'linear-gradient(160deg,#FFB238,#FF6B6B)',
+   desc:'Work-life balance, fitness and nutrition focus.'},
+  {id:'bal', range:'30–40', name:'Sehat Balance', emo:'🌿', grad:'linear-gradient(160deg,#3AA76D,#B7E778)',
+   desc:'Family, nature and everyday balance.'},
+  {id:'mast', range:'40–50', name:'Sehat Masters', emo:'🏆', grad:'linear-gradient(160deg,#D4AF37,#8C6A2F)',
+   desc:'Elegant, prevention-focused wellness mastery.'},
+];
+
+const STYLES = [
+  {id:'feminine', label:'Feminine', emo:'🌸', color:'#FF9AD5'},
+  {id:'action', label:'Action', emo:'⚡', color:'#FF6B6B'},
+  {id:'neutral', label:'Neutral', emo:'🌈', color:'#9B8CFF'},
+  {id:'calm', label:'Calm', emo:'🌿', color:'#2DD9BE'},
+  {id:'custom', label:'Custom', emo:'🎨', color:'#FFB238'},
+  {id:'na', label:'Prefer not to say', emo:'⚪', color:'#9FB0C9'},
+];
+
+const AVATAR_OPTIONS = ['🧑','👧','👦','🧕','👨','👩','🧑‍🦱','🧑‍🦳'];
+const COMPANION_OPTIONS = [
+  {id:'unicorn', emo:'🦄'}, {id:'panda', emo:'🐼'}, {id:'fox', emo:'🦊'},
+  {id:'bunny', emo:'🐰'}, {id:'lion', emo:'🦁'}, {id:'tiger', emo:'🐯'}, {id:'koala', emo:'🐨'},
+];
+
+// All 13 zones for the full city; only a few are wired to real gameplay in this demo.
+const ZONES = [
+  {id:'hygiene', name:'Hygiene Haven', icon:'🧼', reqLevel:1, playable:true},
+  {id:'nutrition', name:'Poshan Park', icon:'🥗', reqLevel:1, playable:true},
+  {id:'myth', name:'Myth Buster Tower', icon:'🧠', reqLevel:1, playable:true},
+  {id:'hydration', name:'Hydration Hub', icon:'💧', reqLevel:1, playable:false},
+  {id:'disease', name:'Disease Defense HQ', icon:'🦠', reqLevel:2, playable:false},
+  {id:'emergency', name:'Emergency HQ', icon:'🚑', reqLevel:2, playable:false},
+  {id:'wellness', name:'Wellness Garden', icon:'🧠', reqLevel:2, playable:false},
+  {id:'vision', name:'Nazar Nagar', icon:'👁️', reqLevel:3, playable:false},
+  {id:'dental', name:'Smile Street', icon:'🦷', reqLevel:3, playable:false},
+  {id:'fitness', name:'Fitness Arena', icon:'🏃', reqLevel:3, playable:false},
+  {id:'sleep', name:'Sleep Sanctuary', icon:'😴', reqLevel:3, playable:false},
+  {id:'heart', name:'Heart Harbor', icon:'❤️', reqLevel:4, playable:false},
+  {id:'gratitude', name:'Gratitude Garden', icon:'🫙', reqLevel:1, playable:true},
+];
+
+// Two levels each, foundation + challenge — mirrors the spec's minimum-2-levels rule.
+const QUIZ_BANK = {
+  hygiene: {
+    1: [
+      {q:'When should you wash your hands with soap?', opts:['Before eating food','Only after using the toilet','Once a day is enough','Only when hands look dirty'], correct:0,
+       exp:'Handwashing before eating removes germs picked up from surfaces, cutting the risk of infection.'},
+      {q:'How long should proper handwashing take?', opts:['2 seconds','About 20 seconds','5 minutes','It doesn\'t matter'], correct:1,
+       exp:'About 20 seconds — roughly the time it takes to hum a short tune twice — is enough to remove most germs.'},
+      {q:'Which of these is a hygiene mistake?', opts:['Covering a cough with your elbow','Sharing a towel with everyone at home','Washing fruit before eating','Brushing teeth twice a day'], correct:1,
+       exp:'Shared towels can pass germs between people — everyone doing their own reduces that risk.'},
+    ],
+    2: [
+      {q:'You\'re in a hostel kitchen and see raw chicken touching a salad on the same board. What\'s the risk?', opts:['No risk, both are food','Cross-contamination can spread bacteria','Only a problem if it smells bad','Cooking will fix it either way'], correct:1,
+       exp:'Raw meat can carry bacteria that transfer to ready-to-eat food like salad — separate boards prevent this.'},
+      {q:'Best habit to prevent spreading infection at a workplace?', opts:['Coming to work sick to not lose pay','Staying home when contagious and washing hands often','Wearing perfume instead of washing hands','Ignoring it — it will pass'], correct:1,
+       exp:'Staying home when contagious, plus regular handwashing, are two of the most effective ways to limit spread.'},
+    ],
+  },
+  nutrition: {
+    1: [
+      {q:'A balanced plate should mostly include:', opts:['Only fried snacks','A mix of vegetables, grains, and protein','Only sugary drinks','Just one food group'], correct:1,
+       exp:'A balanced plate combines food groups — vegetables, whole grains, and protein — for steady energy and nutrients.'},
+      {q:'Which is a good source of protein?', opts:['Candy','Lentils (dal)','Soda','Chips'], correct:1,
+       exp:'Lentils are a strong plant-based protein source, common in everyday meals.'},
+      {q:'Reading a food label helps you check:', opts:['The color of the packet','Sugar, fat, and nutrient content','The brand\'s logo design','Nothing useful'], correct:1,
+       exp:'Food labels show nutrient content like sugar and fat, helping you make an informed choice.'},
+    ],
+    2: [
+      {q:'Your canteen only offers fried snacks and soda. What\'s the healthier move?', opts:['Skip the meal entirely','Add fruit or nuts from home to balance it','Eat double the fried snacks','Drink two sodas instead of one'], correct:1,
+       exp:'Bringing a fruit or nuts to add to an unbalanced canteen meal is a practical way to improve nutrition without skipping food.'},
+      {q:'Which pattern best supports steady energy through a workday?', opts:['One huge meal, then nothing','Regular balanced meals with some protein and fiber','Only caffeine, no food','Skipping breakfast always'], correct:1,
+       exp:'Regular meals with protein and fiber help avoid energy crashes compared to skipping meals or relying on caffeine alone.'},
+    ],
+  },
+};
