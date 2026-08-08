@@ -182,7 +182,7 @@
   .zone-card.locked .lockbadge{ position:absolute; top:10px; right:10px; font-size:14px; }
   .zone-card.playable::after{ content:"PLAY"; position:absolute; top:12px; right:12px; font-size:9.5px; font-weight:800;
     color: var(--ink); background: var(--teal); padding:3px 7px; border-radius:6px; letter-spacing:.5px; }
-    
+
 /* ---------- Quiz ---------- */
   .quiz-card{ background: linear-gradient(180deg, var(--surface-2), var(--surface)); border:1px solid var(--line);
     border-radius: var(--radius); padding:28px; max-width:640px; margin:0 auto; }
@@ -338,3 +338,100 @@ const QUIZ_BANK = {
     ],
   },
 };
+
+const MYTHS = [
+  {claim:'You must drink exactly 8 glasses of water a day, no matter what.', isMyth:true,
+   exp:'Hydration needs vary by body, activity, and climate — there\'s no single number that fits everyone. Drink regularly through the day and let thirst and urine colour guide you.'},
+  {claim:'Cracking your knuckles causes arthritis.', isMyth:true,
+   exp:'Large studies have found no link between knuckle-cracking and arthritis — the sound is just gas bubbles releasing in the joint fluid.'},
+  {claim:'Handwashing with soap is more effective against germs than water alone.', isMyth:false,
+   exp:'Soap helps break down the outer layer of many germs and lifts them off skin, making it more effective than water alone.'},
+  {claim:'Eating carrots gives you perfect night vision.', isMyth:true,
+   exp:'Carrots support general eye health thanks to vitamin A, but they won\'t give anyone superhuman night vision.'},
+  {claim:'Skipping breakfast always makes you gain weight.', isMyth:true,
+   exp:'Weight depends on overall diet and activity patterns — skipping breakfast alone doesn\'t automatically cause weight gain for everyone.'},
+];
+
+const BADGES = [
+  {id:'bubble_hero', name:'Bubble Hero', icon:'🫧', zone:'hygiene', level:1},
+  {id:'hygiene_guardian', name:'Hygiene Guardian', icon:'🧼', zone:'hygiene', level:2},
+  {id:'food_explorer', name:'Food Explorer', icon:'🍎', zone:'nutrition', level:1},
+  {id:'plate_master', name:'Plate Master', icon:'🥗', zone:'nutrition', level:2},
+  {id:'myth_hunter', name:'Myth Hunter', icon:'🔍', zone:'myth', level:1},
+  {id:'gratitude_grower', name:'Gratitude Grower', icon:'🌸', zone:'gratitude', level:1},
+];
+
+/* ---------------- STATE ---------------- */
+
+const state = {
+  screen: 'landing',
+  ageGroup: null,
+  style: null,
+  avatar: null,
+  companion: null,
+  xp: 0,
+  level: 1,
+  streak: 3,
+  badges: [],           // ids
+  zoneProgress: {},     // zoneId -> {1:'done'|'locked', 2:...}
+  dailyTasks: [
+    {id:'d1', label:'Complete one Hygiene Haven round', done:false, xp:15, zone:'hygiene'},
+    {id:'d2', label:'Do a Poshan Park quiz', done:false, xp:15, zone:'nutrition'},
+    {id:'d3', label:'Add one entry to your Gratitude Jar', done:false, xp:5, zone:'gratitude'},
+  ],
+  gratitude: [],
+  activeZone: null,
+  activeLevel: null,
+  quizIndex: 0,
+  quizScore: 0,
+  quizAnswered: false,
+  activeMythIndex: 0,
+  mythResult: null,
+};
+
+function xpForLevel(lvl){ return lvl * 150; }
+
+function addXP(n){
+  state.xp += n;
+  while(state.xp >= xpForLevel(state.level)){
+    state.xp -= xpForLevel(state.level);
+    state.level += 1;
+    toast(`🎉 Level up! You're now Level ${state.level}`);
+  }
+}
+
+function awardBadge(id){
+  if(!state.badges.includes(id)){
+    state.badges.push(id);
+    const b = BADGES.find(x=>x.id===id);
+    if(b) toast(`🏅 Badge earned: ${b.name}`);
+  }
+}
+
+function markDaily(zoneId){
+  const task = state.dailyTasks.find(t=>t.zone===zoneId && !t.done);
+  if(task){
+    task.done = true;
+    addXP(task.xp);
+    if(state.dailyTasks.every(t=>t.done)){
+      state.streak += 1;
+      toast(`🔥 All missions done! Streak is now ${state.streak} days`);
+    }
+  }
+}
+
+let toastTimer = null;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> el.classList.remove('show'), 2600);
+}
+
+function go(screen, extra){
+  state.screen = screen;
+  Object.assign(state, extra||{});
+  render();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
