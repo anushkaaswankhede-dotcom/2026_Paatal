@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SehatVerse — Har Umar. Har Level. Better Health.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0E1A2B;
+    --surface:#152A44;
+    --surface-2:#1C3557;
+    --line: rgba(255,255,255,0.08);
+    --cream:#F4EFE3;
+    --muted:#9FB0C9;
+    --marigold:#FFB238;
+    --marigold-2:#FF8A3D;
+    --teal:#2DD9BE;
+    --coral:#FF6B7A;
+    --violet:#9B8CFF;
+    --radius:22px;
+    --shadow: 0 20px 60px rgba(0,0,0,0.35);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 700px at 15% -10%, rgba(255,178,56,0.14), transparent 60%),
+      radial-gradient(1000px 700px at 100% 0%, rgba(45,217,190,0.12), transparent 55%),
+      var(--ink);
+    color: var(--cream);
+    font-family: 'Manrope', sans-serif;
+    min-height: 100vh;
+    overflow-x:hidden;
+  }
+  h1,h2,h3,.display{ font-family:'Baloo 2', sans-serif; }
+  button{ font-family:inherit; cursor:pointer; }
+  ::selection{ background: var(--marigold); color:#1a1200; }
+  a{color:inherit;}
+
+  #app{ max-width: 1180px; margin: 0 auto; padding: 28px 20px 80px; position:relative; }
+
+  /* ---------- Top bar (shown once past landing) ---------- */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom: 22px; gap:12px; flex-wrap:wrap;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; font-family:'Baloo 2'; font-weight:800; font-size:20px; letter-spacing:0.3px;}
+  .brand .globe{ font-size:24px; filter: drop-shadow(0 0 10px rgba(255,178,56,0.5)); }
+  .stat-pills{ display:flex; gap:10px; flex-wrap:wrap; }
+  .pill{
+    display:flex; align-items:center; gap:6px;
+    background: linear-gradient(180deg, var(--surface-2), var(--surface));
+    border:1px solid var(--line);
+    padding:7px 13px; border-radius:999px; font-size:13px; font-weight:700;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+  }
