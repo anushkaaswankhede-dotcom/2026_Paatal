@@ -435,3 +435,294 @@ function go(screen, extra){
   render();
   window.scrollTo({top:0, behavior:'smooth'});
 }
+/* ---------------- RENDER HELPERS ---------------- */
+
+function el(html){ const t=document.createElement('template'); t.innerHTML=html.trim(); return t.content.firstChild; }
+
+function topbar(){
+  if(state.screen==='landing') return '';
+  return `
+  <div class="topbar">
+    <div class="brand"><span class="globe">🌍</span> SehatVerse</div>
+    <div class="stat-pills">
+      <div class="pill">⭐ ${state.xp}/${xpForLevel(state.level)} XP</div>
+      <div class="pill">🏆 Lvl ${state.level}</div>
+      <div class="pill">🔥 ${state.streak}d streak</div>
+      <div class="pill">${state.avatar||'🙂'} ${state.companion? COMPANION_OPTIONS.find(c=>c.id===state.companion).emo : ''}</div>
+    </div>
+  </div>`;
+}
+
+/* ---------------- SCREENS ---------------- */
+
+function screenLanding(){
+  return `
+  <div class="screen">
+    <div class="landing-hero">
+      <div class="orb o1"></div><div class="orb o2"></div>
+      <div class="kicker">🎮 Khelo. Seekho. Apni Sehat Ko Level Up Karo.</div>
+      <h1 class="hero-title">SEHATVERSE</h1>
+      <div class="hero-tagline">Har Umar. Har Level. Better Health.</div>
+      <p class="hero-sub">Ek interactive health universe jahan learning boring nahi — ek adventure hai. Play games, bust myths, and level up your health knowledge, one zone at a time.</p>
+      <div class="cta-row">
+        <button class="btn btn-primary" id="btn-start">🚀 Start My Journey</button>
+        <button class="btn btn-ghost" id="btn-explore">🗺️ Explore SehatVerse</button>
+      </div>
+      <div class="feature-grid">
+        <div class="fcard"><div class="ic">🎮</div><h3>Play</h3><p>Learn health topics through short, punchy mini-games.</p></div>
+        <div class="fcard"><div class="ic">🧠</div><h3>Learn</h3><p>Adaptive quizzes that challenge your knowledge at your level.</p></div>
+        <div class="fcard"><div class="ic">🫙</div><h3>Feel</h3><p>Grow your wellness and gratitude, one entry at a time.</p></div>
+        <div class="fcard"><div class="ic">🚑</div><h3>Respond</h3><p>Practice recognizing emergencies and getting appropriate help.</p></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function screenAge(){
+  return `
+  <div class="screen center-col">
+    <div class="step-eyebrow">Step 1 of 4</div>
+    <h2 class="step-title">👋 Pehle Apni Age Choose Karo!</h2>
+    <p class="step-sub">Every age group gets its own world, characters, and challenge level.</p>
+    <div class="age-grid">
+      ${AGE_GROUPS.map(a=>`
+        <button class="age-card" style="--age-grad:${a.grad}; color:#1a1200" data-age="${a.id}">
+          <span class="emo">${a.emo}</span>
+          <div class="range">${a.range} yrs</div>
+          <div class="name">${a.name}</div>
+          <div class="desc">${a.desc}</div>
+        </button>`).join('')}
+    </div>
+  </div>`;
+}
+
+function screenStyle(){
+  return `
+  <div class="screen center-col">
+    <button class="back-link" id="btn-back">← Back</button>
+    <div class="step-eyebrow">Step 2 of 4</div>
+    <h2 class="step-title">🎨 Apna Style Choose Karo</h2>
+    <p class="step-sub">This shapes your avatar's colours and vibe — it never changes what health content you see.</p>
+    <div class="theme-grid">
+      ${STYLES.map(s=>`
+        <button class="theme-card ${state.style===s.id?'picked':''}" data-style="${s.id}">
+          <div class="sw" style="background:${s.color}"></div>
+          <div class="lbl">${s.emo} ${s.label}</div>
+        </button>`).join('')}
+    </div>
+    <button class="btn btn-primary" id="btn-style-next" style="margin-top:32px" ${state.style? '' : 'disabled'}>Continue →</button>
+  </div>`;
+}
+
+function screenAvatar(){
+  const styleColor = state.style ? STYLES.find(s=>s.id===state.style).color : '#FFB238';
+  return `
+  <div class="screen center-col">
+    <button class="back-link" id="btn-back">← Back</button>
+    <div class="step-eyebrow">Step 3 of 4</div>
+    <h2 class="step-title">✨ Build Your Avatar</h2>
+    <p class="step-sub">Pick a look and a health companion who'll grow with you.</p>
+    <div class="avatar-preview" style="border-color:${styleColor}">
+      ${state.avatar || '❔'}
+      <div class="comp">${state.companion ? COMPANION_OPTIONS.find(c=>c.id===state.companion).emo : '🐾'}</div>
+    </div>
+    <div class="avatar-panel" style="margin-top:26px">
+      <div class="picker-group">
+        <h4>Avatar</h4>
+        <div class="emo-grid">
+          ${AVATAR_OPTIONS.map(a=>`<button class="emo-btn ${state.avatar===a?'picked':''}" data-avatar="${a}">${a}</button>`).join('')}
+        </div>
+      </div>
+      <div class="picker-group">
+        <h4>Health Companion</h4>
+        <div class="emo-grid">
+          ${COMPANION_OPTIONS.map(c=>`<button class="emo-btn ${state.companion===c.id?'picked':''}" data-companion="${c.id}">${c.emo}</button>`).join('')}
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="btn-avatar-next" style="margin-top:32px" ${state.avatar && state.companion? '' : 'disabled'}>Create My SehatVerse →</button>
+  </div>`;
+}
+
+function screenHome(){
+  const ag = AGE_GROUPS.find(a=>a.id===state.ageGroup);
+  const doneCount = state.dailyTasks.filter(t=>t.done).length;
+  return `
+  <div class="screen">
+    <div class="center-col" style="margin-bottom:26px">
+      <div class="step-eyebrow">${ag.name} · ${ag.range} yrs</div>
+      <h2 class="step-title" style="margin-bottom:0">🌅 Welcome back, ${state.avatar} ${state.companion?COMPANION_OPTIONS.find(c=>c.id===state.companion).emo:''}</h2>
+    </div>
+    <div class="home-grid">
+      <div class="panel">
+        <h3>⭐ Your Progress</h3>
+        <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--muted); margin-bottom:6px;">
+          <span>Level ${state.level}</span><span>${state.xp} / ${xpForLevel(state.level)} XP</span>
+        </div>
+        <div class="xp-bar-track"><div class="xp-bar-fill" style="width:${Math.min(100, state.xp/xpForLevel(state.level)*100)}%"></div></div>
+        <h3 style="margin-top:24px">🎯 Today's Missions (${doneCount}/3)</h3>
+        ${state.dailyTasks.map(t=>`
+          <div class="mission-item">
+            <div class="mission-check ${t.done?'done':''}">${t.done?'✓':''}</div>
+            <div class="mission-text">${t.label}<small>+${t.xp} XP</small></div>
+          </div>`).join('')}
+        <h3 style="margin-top:24px">🏆 Trophy Room</h3>
+        <div class="badge-grid">
+          ${BADGES.map(b=>`
+            <div class="badge-card ${state.badges.includes(b.id)?'':'locked'}">
+              <div class="bic">${b.icon}</div><div class="bname">${b.name}</div>
+            </div>`).join('')}
+        </div>
+        <button class="btn btn-ghost btn-sm" id="btn-gratitude" style="margin-top:18px">🫙 Open Gratitude Jar</button>
+      </div>
+      <div class="panel">
+        <h3>🗺️ Sehat City</h3>
+        <p style="color:var(--muted); font-size:13px; margin-top:-8px;">Tap a zone to explore. Locked zones open as you level up.</p>
+        ${zoneGrid()}
+      </div>
+    </div>
+  </div>`;
+}
+
+function zoneGrid(){
+  return `<div class="zone-grid">
+    ${ZONES.map(z=>{
+      const locked = state.level < z.reqLevel;
+      const cls = locked ? 'locked' : (z.playable? 'playable':'');
+      const prog = state.zoneProgress[z.id];
+      let progLabel = 'Not started';
+      if(prog){
+        const doneLevels = Object.values(prog).filter(v=>v==='done').length;
+        progLabel = doneLevels===2 ? 'Mastered ✓' : doneLevels===1 ? 'Level 2 unlocked' : progLabel;
+      }
+      return `<button class="zone-card ${cls}" data-zone="${z.id}" ${locked?'disabled':''}>
+        <div>
+          <span class="zic">${z.icon}</span>
+          ${locked?`<span class="lockbadge">🔒</span>`:''}
+          <div class="zname">${z.name}</div>
+        </div>
+        <div class="zprog">${locked ? `Unlocks at Lvl ${z.reqLevel}` : progLabel}</div>
+      </button>`;
+    }).join('')}
+  </div>`;
+}
+
+function screenZoneIntro(zoneId){
+  const z = ZONES.find(x=>x.id===zoneId);
+  if(!z.playable){
+    return `<div class="screen center-col">
+      <button class="back-link" id="btn-back">← Back to Sehat City</button>
+      <div style="font-size:60px">${z.icon}</div>
+      <h2 class="step-title">${z.name}</h2>
+      <p class="step-sub">This zone's full mini-games are on the build roadmap (see Priority 3–4 in the README). The engine underneath — quizzes, XP, badges — is already wired up and ready to plug new content into.</p>
+      <button class="btn btn-ghost" id="btn-back2">Back to Sehat City</button>
+    </div>`;
+  }
+  if(zoneId==='gratitude'){ return screenGratitude(); }
+  if(zoneId==='myth'){ return screenMyth(); }
+  const prog = state.zoneProgress[zoneId] || {};
+  const lvl1done = prog[1]==='done';
+  return `<div class="screen center-col">
+    <button class="back-link" id="btn-back">← Back to Sehat City</button>
+    <div style="font-size:60px">${z.icon}</div>
+    <h2 class="step-title">${z.name}</h2>
+    <p class="step-sub">Two levels: start with Foundation, then unlock the real-life Challenge round.</p>
+    <div class="theme-grid" style="max-width:420px">
+      <button class="theme-card" data-quizstart="${zoneId}:1">🌱<div class="lbl">Level 1<br><small style="font-weight:500;color:var(--muted)">Foundation</small></div></button>
+      <button class="theme-card" data-quizstart="${zoneId}:2" ${lvl1done?'':'disabled'} style="${lvl1done?'':'opacity:.5'}">🎯<div class="lbl">Level 2<br><small style="font-weight:500;color:var(--muted)">Challenge ${lvl1done?'':'🔒'}</small></div></button>
+    </div>
+  </div>`;
+}
+
+function screenQuiz(){
+  const bank = QUIZ_BANK[state.activeZone][state.activeLevel];
+  const q = bank[state.quizIndex];
+  const z = ZONES.find(x=>x.id===state.activeZone);
+  return `<div class="screen">
+    <button class="back-link" id="btn-back">← Exit</button>
+    <div class="quiz-card">
+      <div class="quiz-meta"><span>${z.icon} ${z.name} · Level ${state.activeLevel}</span><span>Q${state.quizIndex+1}/${bank.length}</span></div>
+      <div class="quiz-q">${q.q}</div>
+      <div class="opt-list">
+        ${q.opts.map((o,i)=>`<button class="opt-btn" data-opt="${i}" ${state.quizAnswered?'disabled':''}>${o}</button>`).join('')}
+      </div>
+      ${state.quizAnswered? `<div class="feedback-box">💡 ${q.exp}</div>
+        <button class="btn btn-primary btn-block" id="btn-next-q" style="margin-top:18px">${state.quizIndex+1<bank.length? 'Next Question →' : 'Finish Level →'}</button>` : ''}
+    </div>
+  </div>`;
+}
+
+function screenQuizResult(){
+  const z = ZONES.find(x=>x.id===state.activeZone);
+  const bank = QUIZ_BANK[state.activeZone][state.activeLevel];
+  const pct = Math.round(state.quizScore/bank.length*100);
+  return `<div class="screen center-col">
+    <div style="font-size:60px">${pct>=70?'🎉':'💪'}</div>
+    <h2 class="step-title">${z.name} · Level ${state.activeLevel} Complete</h2>
+    <p class="step-sub">You got ${state.quizScore}/${bank.length} correct (${pct}%). ${pct>=70? 'Great work — keep the streak going!' : 'Nice attempt — try again anytime to sharpen this topic.'}</p>
+    <button class="btn btn-primary" id="btn-zone-done">Continue →</button>
+  </div>`;
+}
+
+function screenMyth(){
+  const m = MYTHS[state.activeMythIndex];
+  return `<div class="screen center-col">
+    <button class="back-link" id="btn-back">← Back to Sehat City</button>
+    <div class="step-eyebrow">🧠 Sehat Ki Pol-Khol</div>
+    <h2 class="step-title">Myth Buster Tower</h2>
+    <div class="myth-card">
+      <div class="myth-crystal">${state.mythResult ? (state.mythResult==='correct'?'💎':'✨') : '🔮'}</div>
+      <div class="myth-text">${m.claim}</div>
+      ${!state.mythResult ? `
+      <div class="myth-choices">
+        <button class="myth-btn myth-fact" data-mythans="fact">🟢 FACT</button>
+        <button class="myth-btn myth-myth" data-mythans="myth">🔴 MYTH</button>
+      </div>` : `
+      <div class="feedback-box" style="text-align:left">💡 FACT UNLOCKED<br><br>${m.exp}</div>
+      <button class="btn btn-primary btn-block" id="btn-myth-next" style="margin-top:18px">${state.activeMythIndex+1<MYTHS.length? 'Next Crystal →' : 'Finish Tower →'}</button>
+      `}
+    </div>
+  </div>`;
+}
+
+function screenGratitude(){
+  const filled = Math.min(100, state.gratitude.length*12);
+  const stage = filled>=100?'🌈 Gratitude World':filled>=75?'🌸 Garden':filled>=50?'🌳 Tree':filled>=25?'🌿 Plant':'🌱 Seed';
+  return `<div class="screen center-col">
+    <button class="back-link" id="btn-back">← Back to Sehat City</button>
+    <div class="step-eyebrow">🫙 Gratitude Garden</div>
+    <h2 class="step-title">Your Gratitude Jar</h2>
+    <p class="step-sub">Aaj kis baat ke liye grateful ho? Entries are private to you.</p>
+    <div class="jar-wrap">
+      <div class="jar"><div class="jar-fill" style="height:${filled}%">${state.gratitude.slice(-8).map(g=>g.icon).join(' ')}</div></div>
+      <div style="font-weight:700">${stage} · ${filled}%</div>
+      <div class="jar-input">
+        <input type="text" id="gratitude-input" placeholder="e.g. Finished my workout today" maxlength="80"/>
+        <button class="btn btn-primary btn-sm" id="btn-add-gratitude">Add</button>
+      </div>
+      <div class="entry-list">
+        ${state.gratitude.slice().reverse().map(g=>`<div class="entry-item">${g.icon} ${g.text}</div>`).join('') || '<div class="entry-item" style="color:var(--muted)">No entries yet — add your first one above.</div>'}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------------- MAIN RENDER ---------------- */
+
+function render(){
+  const app = document.getElementById('app');
+  let body = '';
+  switch(state.screen){
+    case 'landing': body = screenLanding(); break;
+    case 'age': body = screenAge(); break;
+    case 'style': body = screenStyle(); break;
+    case 'avatar': body = screenAvatar(); break;
+    case 'home': body = screenHome(); break;
+    case 'zoneIntro': body = screenZoneIntro(state.activeZone); break;
+    case 'quiz': body = screenQuiz(); break;
+    case 'quizResult': body = screenQuizResult(); break;
+    default: body = screenLanding();
+  }
+  app.innerHTML = topbar() + body;
+  wireEvents();
+}
