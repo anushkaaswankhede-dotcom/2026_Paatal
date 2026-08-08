@@ -726,3 +726,134 @@ function render(){
   app.innerHTML = topbar() + body;
   wireEvents();
 }
+
+/* ---------------- EVENTS ---------------- */
+
+function wireEvents(){
+  const on = (sel, evt, fn) => document.querySelectorAll(sel).forEach(n=>n.addEventListener(evt, fn));
+
+  on('#btn-start','click',()=>go('age'));
+  on('#btn-explore','click',()=>go('age'));
+  on('#btn-back','click',()=>{
+    if(state.screen==='style') go('age');
+    else if(state.screen==='avatar') go('style');
+    else if(state.screen==='zoneIntro' || state.screen==='quiz') go('home');
+    else go('landing');
+  });
+  on('#btn-back2','click',()=>go('home'));
+
+  on('[data-age]','click', e=>{ go('style', {ageGroup:e.currentTarget.dataset.age}); });
+
+  on('[data-style]','click', e=>{ state.style = e.currentTarget.dataset.style; render(); });
+  on('#btn-style-next','click',()=> go('avatar'));
+
+  on('[data-avatar]','click', e=>{ state.avatar = e.currentTarget.dataset.avatar; render(); });
+  on('[data-companion]','click', e=>{ state.companion = e.currentTarget.dataset.companion; render(); });
+  on('#btn-avatar-next','click',()=>{ toast('🌍 Your SehatVerse is ready!'); go('home'); });
+
+  on('[data-zone]','click', e=>{
+    const zoneId = e.currentTarget.dataset.zone;
+    go('zoneIntro', {activeZone: zoneId, mythResult:null, activeMythIndex:0});
+  });
+
+  on('#btn-gratitude','click',()=> go('zoneIntro', {activeZone:'gratitude'}));
+
+  on('[data-quizstart]','click', e=>{
+    const [zone, lvl] = e.currentTarget.dataset.quizstart.split(':');
+    go('quiz', {activeZone:zone, activeLevel:Number(lvl), quizIndex:0, quizScore:0, quizAnswered:false});
+  });
+
+  on('[data-opt]','click', e=>{
+    if(state.quizAnswered) return;
+    const bank = QUIZ_BANK[state.activeZone][state.activeLevel];
+    const q = bank[state.quizIndex];
+    const chosen = Number(e.currentTarget.dataset.opt);
+    state.quizAnswered = true;
+    document.querySelectorAll('[data-opt]').forEach((btn,i)=>{
+      if(i===q.correct) btn.classList.add('correct');
+      else if(i===chosen) btn.classList.add('wrong');
+    });
+    if(chosen===q.correct){ state.quizScore++; addXP(15); }
+    document.querySelectorAll('[data-opt]').forEach(b=>b.disabled=true);
+    const box = document.createElement('div');
+    box.className='feedback-box'; box.style.marginTop='18px';
+    box.textContent = '💡 ' + q.exp;
+    const btn = document.createElement('button');
+    btn.className='btn btn-primary btn-block'; btn.style.marginTop='18px';
+    btn.id='btn-next-q';
+    btn.textContent = state.quizIndex+1<bank.length? 'Next Question →' : 'Finish Level →';
+    document.querySelector('.quiz-card').append(box, btn);
+    btn.addEventListener('click', nextQuizStep);
+  });
+
+  on('#btn-next-q','click', nextQuizStep);
+
+  on('#btn-zone-done','click', ()=>{
+    const zoneId = state.activeZone, lvl = state.activeLevel;
+    const bank = QUIZ_BANK[zoneId][lvl];
+    const pct = state.quizScore/bank.length;
+    if(!state.zoneProgress[zoneId]) state.zoneProgress[zoneId] = {};
+    if(pct>=0.5){
+      state.zoneProgress[zoneId][lvl] = 'done';
+      addXP(50);
+      const badge = BADGES.find(b=>b.zone===zoneId && b.level===lvl);
+      if(badge) awardBadge(badge.id);
+      markDaily(zoneId);
+    }
+    go('home');
+  });
+
+  on('[data-mythans]','click', e=>{
+    const m = MYTHS[state.activeMythIndex];
+    const said = e.currentTarget.dataset.mythans; // 'fact' or 'myth'
+    const correct = (said==='myth') === m.isMyth;
+    state.mythResult = correct? 'correct':'wrong';
+    if(correct) addXP(10);
+    render();
+  });
+  on('#btn-myth-next','click', ()=>{
+    if(state.activeMythIndex+1 < MYTHS.length){
+      state.activeMythIndex++; state.mythResult=null; render();
+    } else {
+      if(!state.zoneProgress['myth']) state.zoneProgress['myth']={};
+      state.zoneProgress['myth'][1]='done';
+      awardBadge('myth_hunter');
+      addXP(50);
+      toast('🏆 Myth Buster Tower cleared!');
+      go('home');
+    }
+  });
+
+  on('#btn-add-gratitude','click', addGratitudeEntry);
+  const input = document.getElementById('gratitude-input');
+  if(input){ input.addEventListener('keydown', e=>{ if(e.key==='Enter') addGratitudeEntry(); }); }
+}
+
+function nextQuizStep(){
+  const bank = QUIZ_BANK[state.activeZone][state.activeLevel];
+  if(state.quizIndex+1 < bank.length){
+    state.quizIndex++; state.quizAnswered=false; render();
+  } else {
+    go('quizResult');
+  }
+}
+
+const GRATITUDE_ICONS = ['❤️','⭐','🌱','🌈','☀️','💪','🧠'];
+function addGratitudeEntry(){
+  const input = document.getElementById('gratitude-input');
+  const text = input.value.trim();
+  if(!text) return;
+  const icon = GRATITUDE_ICONS[state.gratitude.length % GRATITUDE_ICONS.length];
+  state.gratitude.push({text, icon});
+  addXP(5);
+  markDaily('gratitude');
+  if(state.gratitude.length===1) awardBadge('gratitude_grower');
+  input.value='';
+  render();
+  document.getElementById('gratitude-input')?.focus();
+}
+
+render();
+</script>
+</body>
+</html>
