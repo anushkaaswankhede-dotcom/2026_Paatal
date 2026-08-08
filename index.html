@@ -182,3 +182,678 @@
   .zone-card.locked .lockbadge{ position:absolute; top:10px; right:10px; font-size:14px; }
   .zone-card.playable::after{ content:"PLAY"; position:absolute; top:12px; right:12px; font-size:9.5px; font-weight:800;
     color: var(--ink); background: var(--teal); padding:3px 7px; border-radius:6px; letter-spacing:.5px; }
+
+/* ---------- Quiz ---------- */
+  .quiz-card{ background: linear-gradient(180deg, var(--surface-2), var(--surface)); border:1px solid var(--line);
+    border-radius: var(--radius); padding:28px; max-width:640px; margin:0 auto; }
+  .quiz-meta{ display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; font-size:12.5px; color:var(--muted); font-weight:700;}
+  .quiz-q{ font-size:19px; font-weight:700; margin-bottom:22px; line-height:1.4; }
+  .opt-list{ display:flex; flex-direction:column; gap:10px; }
+  .opt-btn{ text-align:left; padding:14px 16px; border-radius:14px; border:1px solid var(--line); background: var(--surface);
+    font-size:14.5px; font-weight:600; transition:.15s; color:var(--cream); }
+  .opt-btn:hover{ border-color: var(--marigold); }
+  .opt-btn.correct{ background: rgba(45,217,190,0.18); border-color: var(--teal); }
+  .opt-btn.wrong{ background: rgba(255,107,122,0.18); border-color: var(--coral); }
+  .opt-btn:disabled{ cursor:default; }
+  .feedback-box{ margin-top:18px; padding:16px; border-radius:14px; background: rgba(255,255,255,0.05); font-size:13.5px; color:var(--muted); line-height:1.5; }
+
+  /* ---------- Myth buster ---------- */
+  .myth-card{ max-width:560px; margin:0 auto; background: linear-gradient(180deg, var(--surface-2), var(--surface));
+    border:1px solid var(--line); border-radius: var(--radius); padding:30px; text-align:center; }
+  .myth-crystal{ font-size:50px; margin-bottom:10px; }
+  .myth-text{ font-size:18px; font-weight:700; margin:14px 0 24px; line-height:1.4; }
+  .myth-choices{ display:flex; gap:14px; justify-content:center; }
+  .myth-btn{ flex:1; max-width:150px; padding:16px; border-radius:14px; border:none; font-weight:800; font-size:15px;}
+  .myth-fact{ background: linear-gradient(135deg, var(--teal), #17b39c); color:#04241f; }
+  .myth-myth{ background: linear-gradient(135deg, var(--coral), #e0505f); color:#2b0409; }
+
+  /* ---------- Trophy room ---------- */
+  .badge-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:14px; }
+  .badge-card{ text-align:center; padding:18px 10px; border-radius:16px; border:1px solid var(--line); background: var(--surface); }
+  .badge-card .bic{ font-size:32px; }
+  .badge-card .bname{ font-size:12px; font-weight:700; margin-top:8px; }
+  .badge-card.locked{ opacity:.3; }
+
+  /* ---------- Gratitude jar ---------- */
+  .jar-wrap{ display:flex; flex-direction:column; align-items:center; gap:18px; }
+  .jar{ width:150px; height:190px; border-radius: 20px 20px 44px 44px; border:3px solid rgba(255,255,255,0.25);
+    position:relative; overflow:hidden; background: rgba(255,255,255,0.03); }
+  .jar-fill{ position:absolute; bottom:0; left:0; right:0; background: linear-gradient(180deg, var(--teal), #1a8f7c);
+    transition: height .6s ease; display:flex; flex-wrap:wrap; align-content:flex-end; justify-content:center; gap:2px; padding:4px; font-size:14px; }
+  .jar-input{ display:flex; gap:8px; width:100%; max-width:420px; }
+  .jar-input input{ flex:1; padding:12px 14px; border-radius:12px; border:1px solid var(--line); background: var(--surface);
+    color:var(--cream); font-family:inherit; font-size:14px; }
+  .entry-list{ width:100%; max-width:420px; text-align:left; display:flex; flex-direction:column; gap:8px; max-height:160px; overflow:auto; }
+  .entry-item{ background: var(--surface); border:1px solid var(--line); border-radius:12px; padding:10px 14px; font-size:13px; }
+
+  /* ---------- Toast ---------- */
+  #toast{ position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
+    background: linear-gradient(135deg, var(--marigold), var(--marigold-2)); color:#20130A; font-weight:800; font-size:14px;
+    padding:14px 24px; border-radius:14px; box-shadow: var(--shadow); z-index:50; transition: all .3s ease; pointer-events:none; }
+  #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .back-link{ background:none; border:none; color:var(--muted); font-weight:700; font-size:13.5px; margin-bottom:18px;
+    display:flex; align-items:center; gap:6px; padding:0; }
+  .back-link:hover{ color:var(--cream); }
+
+  .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+  .visually-hidden-focusable:focus{ position:static; width:auto; height:auto; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+/* =========================================================
+   SEHATVERSE — CORE DEMO
+   Front-end only reference implementation of the priority-1/2
+   product loop. State lives in memory (no localStorage per
+   artifact rules) — a real deployment persists this via the
+   Supabase schema in /supabase/schema.sql.
+   ========================================================= */
+
+/* ---------------- CONFIG / CONTENT ---------------- */
+
+const AGE_GROUPS = [
+  {id:'k', range:'3–12', name:'Sehat Superstars', emo:'🦄', grad:'linear-gradient(160deg,#FF9AD5,#7BD5FF)',
+   desc:'Magical adventure world with friendly animal guides.'},
+  {id:'teen', range:'12–16', name:'Sehat Squad', emo:'⚡', grad:'linear-gradient(160deg,#FFD23F,#FF6B6B)',
+   desc:'Action-hero missions and battle-style challenges.'},
+  {id:'lab', range:'16–18', name:'Health Lab', emo:'🧬', grad:'linear-gradient(160deg,#7B61FF,#33D6C4)',
+   desc:'Holographic science lab with real experiments.'},
+  {id:'guard', range:'18–23', name:'Sehat Guardians', emo:'🚀', grad:'linear-gradient(160deg,#3355FF,#33D6C4)',
+   desc:'Futuristic city, modern lifestyle missions.'},
+  {id:'pro', range:'23–30', name:'Wellness Pro', emo:'💼', grad:'linear-gradient(160deg,#FFB238,#FF6B6B)',
+   desc:'Work-life balance, fitness and nutrition focus.'},
+  {id:'bal', range:'30–40', name:'Sehat Balance', emo:'🌿', grad:'linear-gradient(160deg,#3AA76D,#B7E778)',
+   desc:'Family, nature and everyday balance.'},
+  {id:'mast', range:'40–50', name:'Sehat Masters', emo:'🏆', grad:'linear-gradient(160deg,#D4AF37,#8C6A2F)',
+   desc:'Elegant, prevention-focused wellness mastery.'},
+];
+
+const STYLES = [
+  {id:'feminine', label:'Feminine', emo:'🌸', color:'#FF9AD5'},
+  {id:'action', label:'Action', emo:'⚡', color:'#FF6B6B'},
+  {id:'neutral', label:'Neutral', emo:'🌈', color:'#9B8CFF'},
+  {id:'calm', label:'Calm', emo:'🌿', color:'#2DD9BE'},
+  {id:'custom', label:'Custom', emo:'🎨', color:'#FFB238'},
+  {id:'na', label:'Prefer not to say', emo:'⚪', color:'#9FB0C9'},
+];
+
+const AVATAR_OPTIONS = ['🧑','👧','👦','🧕','👨','👩','🧑‍🦱','🧑‍🦳'];
+const COMPANION_OPTIONS = [
+  {id:'unicorn', emo:'🦄'}, {id:'panda', emo:'🐼'}, {id:'fox', emo:'🦊'},
+  {id:'bunny', emo:'🐰'}, {id:'lion', emo:'🦁'}, {id:'tiger', emo:'🐯'}, {id:'koala', emo:'🐨'},
+];
+
+// All 13 zones for the full city; only a few are wired to real gameplay in this demo.
+const ZONES = [
+  {id:'hygiene', name:'Hygiene Haven', icon:'🧼', reqLevel:1, playable:true},
+  {id:'nutrition', name:'Poshan Park', icon:'🥗', reqLevel:1, playable:true},
+  {id:'myth', name:'Myth Buster Tower', icon:'🧠', reqLevel:1, playable:true},
+  {id:'hydration', name:'Hydration Hub', icon:'💧', reqLevel:1, playable:false},
+  {id:'disease', name:'Disease Defense HQ', icon:'🦠', reqLevel:2, playable:false},
+  {id:'emergency', name:'Emergency HQ', icon:'🚑', reqLevel:2, playable:false},
+  {id:'wellness', name:'Wellness Garden', icon:'🧠', reqLevel:2, playable:false},
+  {id:'vision', name:'Nazar Nagar', icon:'👁️', reqLevel:3, playable:false},
+  {id:'dental', name:'Smile Street', icon:'🦷', reqLevel:3, playable:false},
+  {id:'fitness', name:'Fitness Arena', icon:'🏃', reqLevel:3, playable:false},
+  {id:'sleep', name:'Sleep Sanctuary', icon:'😴', reqLevel:3, playable:false},
+  {id:'heart', name:'Heart Harbor', icon:'❤️', reqLevel:4, playable:false},
+  {id:'gratitude', name:'Gratitude Garden', icon:'🫙', reqLevel:1, playable:true},
+];
+
+// Two levels each, foundation + challenge — mirrors the spec's minimum-2-levels rule.
+const QUIZ_BANK = {
+  hygiene: {
+    1: [
+      {q:'When should you wash your hands with soap?', opts:['Before eating food','Only after using the toilet','Once a day is enough','Only when hands look dirty'], correct:0,
+       exp:'Handwashing before eating removes germs picked up from surfaces, cutting the risk of infection.'},
+      {q:'How long should proper handwashing take?', opts:['2 seconds','About 20 seconds','5 minutes','It doesn\'t matter'], correct:1,
+       exp:'About 20 seconds — roughly the time it takes to hum a short tune twice — is enough to remove most germs.'},
+      {q:'Which of these is a hygiene mistake?', opts:['Covering a cough with your elbow','Sharing a towel with everyone at home','Washing fruit before eating','Brushing teeth twice a day'], correct:1,
+       exp:'Shared towels can pass germs between people — everyone doing their own reduces that risk.'},
+    ],
+    2: [
+      {q:'You\'re in a hostel kitchen and see raw chicken touching a salad on the same board. What\'s the risk?', opts:['No risk, both are food','Cross-contamination can spread bacteria','Only a problem if it smells bad','Cooking will fix it either way'], correct:1,
+       exp:'Raw meat can carry bacteria that transfer to ready-to-eat food like salad — separate boards prevent this.'},
+      {q:'Best habit to prevent spreading infection at a workplace?', opts:['Coming to work sick to not lose pay','Staying home when contagious and washing hands often','Wearing perfume instead of washing hands','Ignoring it — it will pass'], correct:1,
+       exp:'Staying home when contagious, plus regular handwashing, are two of the most effective ways to limit spread.'},
+    ],
+  },
+  nutrition: {
+    1: [
+      {q:'A balanced plate should mostly include:', opts:['Only fried snacks','A mix of vegetables, grains, and protein','Only sugary drinks','Just one food group'], correct:1,
+       exp:'A balanced plate combines food groups — vegetables, whole grains, and protein — for steady energy and nutrients.'},
+      {q:'Which is a good source of protein?', opts:['Candy','Lentils (dal)','Soda','Chips'], correct:1,
+       exp:'Lentils are a strong plant-based protein source, common in everyday meals.'},
+      {q:'Reading a food label helps you check:', opts:['The color of the packet','Sugar, fat, and nutrient content','The brand\'s logo design','Nothing useful'], correct:1,
+       exp:'Food labels show nutrient content like sugar and fat, helping you make an informed choice.'},
+    ],
+    2: [
+      {q:'Your canteen only offers fried snacks and soda. What\'s the healthier move?', opts:['Skip the meal entirely','Add fruit or nuts from home to balance it','Eat double the fried snacks','Drink two sodas instead of one'], correct:1,
+       exp:'Bringing a fruit or nuts to add to an unbalanced canteen meal is a practical way to improve nutrition without skipping food.'},
+      {q:'Which pattern best supports steady energy through a workday?', opts:['One huge meal, then nothing','Regular balanced meals with some protein and fiber','Only caffeine, no food','Skipping breakfast always'], correct:1,
+       exp:'Regular meals with protein and fiber help avoid energy crashes compared to skipping meals or relying on caffeine alone.'},
+    ],
+  },
+};
+
+const MYTHS = [
+  {claim:'You must drink exactly 8 glasses of water a day, no matter what.', isMyth:true,
+   exp:'Hydration needs vary by body, activity, and climate — there\'s no single number that fits everyone. Drink regularly through the day and let thirst and urine colour guide you.'},
+  {claim:'Cracking your knuckles causes arthritis.', isMyth:true,
+   exp:'Large studies have found no link between knuckle-cracking and arthritis — the sound is just gas bubbles releasing in the joint fluid.'},
+  {claim:'Handwashing with soap is more effective against germs than water alone.', isMyth:false,
+   exp:'Soap helps break down the outer layer of many germs and lifts them off skin, making it more effective than water alone.'},
+  {claim:'Eating carrots gives you perfect night vision.', isMyth:true,
+   exp:'Carrots support general eye health thanks to vitamin A, but they won\'t give anyone superhuman night vision.'},
+  {claim:'Skipping breakfast always makes you gain weight.', isMyth:true,
+   exp:'Weight depends on overall diet and activity patterns — skipping breakfast alone doesn\'t automatically cause weight gain for everyone.'},
+];
+
+const BADGES = [
+  {id:'bubble_hero', name:'Bubble Hero', icon:'🫧', zone:'hygiene', level:1},
+  {id:'hygiene_guardian', name:'Hygiene Guardian', icon:'🧼', zone:'hygiene', level:2},
+  {id:'food_explorer', name:'Food Explorer', icon:'🍎', zone:'nutrition', level:1},
+  {id:'plate_master', name:'Plate Master', icon:'🥗', zone:'nutrition', level:2},
+  {id:'myth_hunter', name:'Myth Hunter', icon:'🔍', zone:'myth', level:1},
+  {id:'gratitude_grower', name:'Gratitude Grower', icon:'🌸', zone:'gratitude', level:1},
+];
+
+/* ---------------- STATE ---------------- */
+
+const state = {
+  screen: 'landing',
+  ageGroup: null,
+  style: null,
+  avatar: null,
+  companion: null,
+  xp: 0,
+  level: 1,
+  streak: 3,
+  badges: [],           // ids
+  zoneProgress: {},     // zoneId -> {1:'done'|'locked', 2:...}
+  dailyTasks: [
+    {id:'d1', label:'Complete one Hygiene Haven round', done:false, xp:15, zone:'hygiene'},
+    {id:'d2', label:'Do a Poshan Park quiz', done:false, xp:15, zone:'nutrition'},
+    {id:'d3', label:'Add one entry to your Gratitude Jar', done:false, xp:5, zone:'gratitude'},
+  ],
+  gratitude: [],
+  activeZone: null,
+  activeLevel: null,
+  quizIndex: 0,
+  quizScore: 0,
+  quizAnswered: false,
+  activeMythIndex: 0,
+  mythResult: null,
+};
+
+function xpForLevel(lvl){ return lvl * 150; }
+
+function addXP(n){
+  state.xp += n;
+  while(state.xp >= xpForLevel(state.level)){
+    state.xp -= xpForLevel(state.level);
+    state.level += 1;
+    toast(`🎉 Level up! You're now Level ${state.level}`);
+  }
+}
+
+function awardBadge(id){
+  if(!state.badges.includes(id)){
+    state.badges.push(id);
+    const b = BADGES.find(x=>x.id===id);
+    if(b) toast(`🏅 Badge earned: ${b.name}`);
+  }
+}
+
+function markDaily(zoneId){
+  const task = state.dailyTasks.find(t=>t.zone===zoneId && !t.done);
+  if(task){
+    task.done = true;
+    addXP(task.xp);
+    if(state.dailyTasks.every(t=>t.done)){
+      state.streak += 1;
+      toast(`🔥 All missions done! Streak is now ${state.streak} days`);
+    }
+  }
+}
+
+let toastTimer = null;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> el.classList.remove('show'), 2600);
+}
+
+function go(screen, extra){
+  state.screen = screen;
+  Object.assign(state, extra||{});
+  render();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+/* ---------------- RENDER HELPERS ---------------- */
+
+function el(html){ const t=document.createElement('template'); t.innerHTML=html.trim(); return t.content.firstChild; }
+
+function topbar(){
+  if(state.screen==='landing') return '';
+  return `
+  <div class="topbar">
+    <div class="brand"><span class="globe">🌍</span> SehatVerse</div>
+    <div class="stat-pills">
+      <div class="pill">⭐ ${state.xp}/${xpForLevel(state.level)} XP</div>
+      <div class="pill">🏆 Lvl ${state.level}</div>
+      <div class="pill">🔥 ${state.streak}d streak</div>
+      <div class="pill">${state.avatar||'🙂'} ${state.companion? COMPANION_OPTIONS.find(c=>c.id===state.companion).emo : ''}</div>
+    </div>
+  </div>`;
+}
+
+/* ---------------- SCREENS ---------------- */
+
+function screenLanding(){
+  return `
+  <div class="screen">
+    <div class="landing-hero">
+      <div class="orb o1"></div><div class="orb o2"></div>
+      <div class="kicker">🎮 Khelo. Seekho. Apni Sehat Ko Level Up Karo.</div>
+      <h1 class="hero-title">SEHATVERSE</h1>
+      <div class="hero-tagline">Har Umar. Har Level. Better Health.</div>
+      <p class="hero-sub">Ek interactive health universe jahan learning boring nahi — ek adventure hai. Play games, bust myths, and level up your health knowledge, one zone at a time.</p>
+      <div class="cta-row">
+        <button class="btn btn-primary" id="btn-start">🚀 Start My Journey</button>
+        <button class="btn btn-ghost" id="btn-explore">🗺️ Explore SehatVerse</button>
+      </div>
+      <div class="feature-grid">
+        <div class="fcard"><div class="ic">🎮</div><h3>Play</h3><p>Learn health topics through short, punchy mini-games.</p></div>
+        <div class="fcard"><div class="ic">🧠</div><h3>Learn</h3><p>Adaptive quizzes that challenge your knowledge at your level.</p></div>
+        <div class="fcard"><div class="ic">🫙</div><h3>Feel</h3><p>Grow your wellness and gratitude, one entry at a time.</p></div>
+        <div class="fcard"><div class="ic">🚑</div><h3>Respond</h3><p>Practice recognizing emergencies and getting appropriate help.</p></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function screenAge(){
+  return `
+  <div class="screen center-col">
+    <div class="step-eyebrow">Step 1 of 4</div>
+    <h2 class="step-title">👋 Pehle Apni Age Choose Karo!</h2>
+    <p class="step-sub">Every age group gets its own world, characters, and challenge level.</p>
+    <div class="age-grid">
+      ${AGE_GROUPS.map(a=>`
+        <button class="age-card" style="--age-grad:${a.grad}; color:#1a1200" data-age="${a.id}">
+          <span class="emo">${a.emo}</span>
+          <div class="range">${a.range} yrs</div>
+          <div class="name">${a.name}</div>
+          <div class="desc">${a.desc}</div>
+        </button>`).join('')}
+    </div>
+  </div>`;
+}
+
+function screenStyle(){
+  return `
+  <div class="screen center-col">
+    <button class="back-link" id="btn-back">← Back</button>
+    <div class="step-eyebrow">Step 2 of 4</div>
+    <h2 class="step-title">🎨 Apna Style Choose Karo</h2>
+    <p class="step-sub">This shapes your avatar's colours and vibe — it never changes what health content you see.</p>
+    <div class="theme-grid">
+      ${STYLES.map(s=>`
+        <button class="theme-card ${state.style===s.id?'picked':''}" data-style="${s.id}">
+          <div class="sw" style="background:${s.color}"></div>
+          <div class="lbl">${s.emo} ${s.label}</div>
+        </button>`).join('')}
+    </div>
+    <button class="btn btn-primary" id="btn-style-next" style="margin-top:32px" ${state.style? '' : 'disabled'}>Continue →</button>
+  </div>`;
+}
+
+function screenAvatar(){
+  const styleColor = state.style ? STYLES.find(s=>s.id===state.style).color : '#FFB238';
+  return `
+  <div class="screen center-col">
+    <button class="back-link" id="btn-back">← Back</button>
+    <div class="step-eyebrow">Step 3 of 4</div>
+    <h2 class="step-title">✨ Build Your Avatar</h2>
+    <p class="step-sub">Pick a look and a health companion who'll grow with you.</p>
+    <div class="avatar-preview" style="border-color:${styleColor}">
+      ${state.avatar || '❔'}
+      <div class="comp">${state.companion ? COMPANION_OPTIONS.find(c=>c.id===state.companion).emo : '🐾'}</div>
+    </div>
+    <div class="avatar-panel" style="margin-top:26px">
+      <div class="picker-group">
+        <h4>Avatar</h4>
+        <div class="emo-grid">
+          ${AVATAR_OPTIONS.map(a=>`<button class="emo-btn ${state.avatar===a?'picked':''}" data-avatar="${a}">${a}</button>`).join('')}
+        </div>
+      </div>
+      <div class="picker-group">
+        <h4>Health Companion</h4>
+        <div class="emo-grid">
+          ${COMPANION_OPTIONS.map(c=>`<button class="emo-btn ${state.companion===c.id?'picked':''}" data-companion="${c.id}">${c.emo}</button>`).join('')}
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="btn-avatar-next" style="margin-top:32px" ${state.avatar && state.companion? '' : 'disabled'}>Create My SehatVerse →</button>
+  </div>`;
+}
+
+function screenHome(){
+  const ag = AGE_GROUPS.find(a=>a.id===state.ageGroup);
+  const doneCount = state.dailyTasks.filter(t=>t.done).length;
+  return `
+  <div class="screen">
+    <div class="center-col" style="margin-bottom:26px">
+      <div class="step-eyebrow">${ag.name} · ${ag.range} yrs</div>
+      <h2 class="step-title" style="margin-bottom:0">🌅 Welcome back, ${state.avatar} ${state.companion?COMPANION_OPTIONS.find(c=>c.id===state.companion).emo:''}</h2>
+    </div>
+    <div class="home-grid">
+      <div class="panel">
+        <h3>⭐ Your Progress</h3>
+        <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--muted); margin-bottom:6px;">
+          <span>Level ${state.level}</span><span>${state.xp} / ${xpForLevel(state.level)} XP</span>
+        </div>
+        <div class="xp-bar-track"><div class="xp-bar-fill" style="width:${Math.min(100, state.xp/xpForLevel(state.level)*100)}%"></div></div>
+        <h3 style="margin-top:24px">🎯 Today's Missions (${doneCount}/3)</h3>
+        ${state.dailyTasks.map(t=>`
+          <div class="mission-item">
+            <div class="mission-check ${t.done?'done':''}">${t.done?'✓':''}</div>
+            <div class="mission-text">${t.label}<small>+${t.xp} XP</small></div>
+          </div>`).join('')}
+        <h3 style="margin-top:24px">🏆 Trophy Room</h3>
+        <div class="badge-grid">
+          ${BADGES.map(b=>`
+            <div class="badge-card ${state.badges.includes(b.id)?'':'locked'}">
+              <div class="bic">${b.icon}</div><div class="bname">${b.name}</div>
+            </div>`).join('')}
+        </div>
+        <button class="btn btn-ghost btn-sm" id="btn-gratitude" style="margin-top:18px">🫙 Open Gratitude Jar</button>
+      </div>
+      <div class="panel">
+        <h3>🗺️ Sehat City</h3>
+        <p style="color:var(--muted); font-size:13px; margin-top:-8px;">Tap a zone to explore. Locked zones open as you level up.</p>
+        ${zoneGrid()}
+      </div>
+    </div>
+  </div>`;
+}
+
+function zoneGrid(){
+  return `<div class="zone-grid">
+    ${ZONES.map(z=>{
+      const locked = state.level < z.reqLevel;
+      const cls = locked ? 'locked' : (z.playable? 'playable':'');
+      const prog = state.zoneProgress[z.id];
+      let progLabel = 'Not started';
+      if(prog){
+        const doneLevels = Object.values(prog).filter(v=>v==='done').length;
+        progLabel = doneLevels===2 ? 'Mastered ✓' : doneLevels===1 ? 'Level 2 unlocked' : progLabel;
+      }
+      return `<button class="zone-card ${cls}" data-zone="${z.id}" ${locked?'disabled':''}>
+        <div>
+          <span class="zic">${z.icon}</span>
+          ${locked?`<span class="lockbadge">🔒</span>`:''}
+          <div class="zname">${z.name}</div>
+        </div>
+        <div class="zprog">${locked ? `Unlocks at Lvl ${z.reqLevel}` : progLabel}</div>
+      </button>`;
+    }).join('')}
+  </div>`;
+}
+
+function screenZoneIntro(zoneId){
+  const z = ZONES.find(x=>x.id===zoneId);
+  if(!z.playable){
+    return `<div class="screen center-col">
+      <button class="back-link" id="btn-back">← Back to Sehat City</button>
+      <div style="font-size:60px">${z.icon}</div>
+      <h2 class="step-title">${z.name}</h2>
+      <p class="step-sub">This zone's full mini-games are on the build roadmap (see Priority 3–4 in the README). The engine underneath — quizzes, XP, badges — is already wired up and ready to plug new content into.</p>
+      <button class="btn btn-ghost" id="btn-back2">Back to Sehat City</button>
+    </div>`;
+  }
+  if(zoneId==='gratitude'){ return screenGratitude(); }
+  if(zoneId==='myth'){ return screenMyth(); }
+  const prog = state.zoneProgress[zoneId] || {};
+  const lvl1done = prog[1]==='done';
+  return `<div class="screen center-col">
+    <button class="back-link" id="btn-back">← Back to Sehat City</button>
+    <div style="font-size:60px">${z.icon}</div>
+    <h2 class="step-title">${z.name}</h2>
+    <p class="step-sub">Two levels: start with Foundation, then unlock the real-life Challenge round.</p>
+    <div class="theme-grid" style="max-width:420px">
+      <button class="theme-card" data-quizstart="${zoneId}:1">🌱<div class="lbl">Level 1<br><small style="font-weight:500;color:var(--muted)">Foundation</small></div></button>
+      <button class="theme-card" data-quizstart="${zoneId}:2" ${lvl1done?'':'disabled'} style="${lvl1done?'':'opacity:.5'}">🎯<div class="lbl">Level 2<br><small style="font-weight:500;color:var(--muted)">Challenge ${lvl1done?'':'🔒'}</small></div></button>
+    </div>
+  </div>`;
+}
+
+function screenQuiz(){
+  const bank = QUIZ_BANK[state.activeZone][state.activeLevel];
+  const q = bank[state.quizIndex];
+  const z = ZONES.find(x=>x.id===state.activeZone);
+  return `<div class="screen">
+    <button class="back-link" id="btn-back">← Exit</button>
+    <div class="quiz-card">
+      <div class="quiz-meta"><span>${z.icon} ${z.name} · Level ${state.activeLevel}</span><span>Q${state.quizIndex+1}/${bank.length}</span></div>
+      <div class="quiz-q">${q.q}</div>
+      <div class="opt-list">
+        ${q.opts.map((o,i)=>`<button class="opt-btn" data-opt="${i}" ${state.quizAnswered?'disabled':''}>${o}</button>`).join('')}
+      </div>
+      ${state.quizAnswered? `<div class="feedback-box">💡 ${q.exp}</div>
+        <button class="btn btn-primary btn-block" id="btn-next-q" style="margin-top:18px">${state.quizIndex+1<bank.length? 'Next Question →' : 'Finish Level →'}</button>` : ''}
+    </div>
+  </div>`;
+}
+
+function screenQuizResult(){
+  const z = ZONES.find(x=>x.id===state.activeZone);
+  const bank = QUIZ_BANK[state.activeZone][state.activeLevel];
+  const pct = Math.round(state.quizScore/bank.length*100);
+  return `<div class="screen center-col">
+    <div style="font-size:60px">${pct>=70?'🎉':'💪'}</div>
+    <h2 class="step-title">${z.name} · Level ${state.activeLevel} Complete</h2>
+    <p class="step-sub">You got ${state.quizScore}/${bank.length} correct (${pct}%). ${pct>=70? 'Great work — keep the streak going!' : 'Nice attempt — try again anytime to sharpen this topic.'}</p>
+    <button class="btn btn-primary" id="btn-zone-done">Continue →</button>
+  </div>`;
+}
+
+function screenMyth(){
+  const m = MYTHS[state.activeMythIndex];
+  return `<div class="screen center-col">
+    <button class="back-link" id="btn-back">← Back to Sehat City</button>
+    <div class="step-eyebrow">🧠 Sehat Ki Pol-Khol</div>
+    <h2 class="step-title">Myth Buster Tower</h2>
+    <div class="myth-card">
+      <div class="myth-crystal">${state.mythResult ? (state.mythResult==='correct'?'💎':'✨') : '🔮'}</div>
+      <div class="myth-text">${m.claim}</div>
+      ${!state.mythResult ? `
+      <div class="myth-choices">
+        <button class="myth-btn myth-fact" data-mythans="fact">🟢 FACT</button>
+        <button class="myth-btn myth-myth" data-mythans="myth">🔴 MYTH</button>
+      </div>` : `
+      <div class="feedback-box" style="text-align:left">💡 FACT UNLOCKED<br><br>${m.exp}</div>
+      <button class="btn btn-primary btn-block" id="btn-myth-next" style="margin-top:18px">${state.activeMythIndex+1<MYTHS.length? 'Next Crystal →' : 'Finish Tower →'}</button>
+      `}
+    </div>
+  </div>`;
+}
+
+function screenGratitude(){
+  const filled = Math.min(100, state.gratitude.length*12);
+  const stage = filled>=100?'🌈 Gratitude World':filled>=75?'🌸 Garden':filled>=50?'🌳 Tree':filled>=25?'🌿 Plant':'🌱 Seed';
+  return `<div class="screen center-col">
+    <button class="back-link" id="btn-back">← Back to Sehat City</button>
+    <div class="step-eyebrow">🫙 Gratitude Garden</div>
+    <h2 class="step-title">Your Gratitude Jar</h2>
+    <p class="step-sub">Aaj kis baat ke liye grateful ho? Entries are private to you.</p>
+    <div class="jar-wrap">
+      <div class="jar"><div class="jar-fill" style="height:${filled}%">${state.gratitude.slice(-8).map(g=>g.icon).join(' ')}</div></div>
+      <div style="font-weight:700">${stage} · ${filled}%</div>
+      <div class="jar-input">
+        <input type="text" id="gratitude-input" placeholder="e.g. Finished my workout today" maxlength="80"/>
+        <button class="btn btn-primary btn-sm" id="btn-add-gratitude">Add</button>
+      </div>
+      <div class="entry-list">
+        ${state.gratitude.slice().reverse().map(g=>`<div class="entry-item">${g.icon} ${g.text}</div>`).join('') || '<div class="entry-item" style="color:var(--muted)">No entries yet — add your first one above.</div>'}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------------- MAIN RENDER ---------------- */
+
+function render(){
+  const app = document.getElementById('app');
+  let body = '';
+  switch(state.screen){
+    case 'landing': body = screenLanding(); break;
+    case 'age': body = screenAge(); break;
+    case 'style': body = screenStyle(); break;
+    case 'avatar': body = screenAvatar(); break;
+    case 'home': body = screenHome(); break;
+    case 'zoneIntro': body = screenZoneIntro(state.activeZone); break;
+    case 'quiz': body = screenQuiz(); break;
+    case 'quizResult': body = screenQuizResult(); break;
+    default: body = screenLanding();
+  }
+  app.innerHTML = topbar() + body;
+  wireEvents();
+}
+
+/* ---------------- EVENTS ---------------- */
+
+function wireEvents(){
+  const on = (sel, evt, fn) => document.querySelectorAll(sel).forEach(n=>n.addEventListener(evt, fn));
+
+  on('#btn-start','click',()=>go('age'));
+  on('#btn-explore','click',()=>go('age'));
+  on('#btn-back','click',()=>{
+    if(state.screen==='style') go('age');
+    else if(state.screen==='avatar') go('style');
+    else if(state.screen==='zoneIntro' || state.screen==='quiz') go('home');
+    else go('landing');
+  });
+  on('#btn-back2','click',()=>go('home'));
+
+  on('[data-age]','click', e=>{ go('style', {ageGroup:e.currentTarget.dataset.age}); });
+
+  on('[data-style]','click', e=>{ state.style = e.currentTarget.dataset.style; render(); });
+  on('#btn-style-next','click',()=> go('avatar'));
+
+  on('[data-avatar]','click', e=>{ state.avatar = e.currentTarget.dataset.avatar; render(); });
+  on('[data-companion]','click', e=>{ state.companion = e.currentTarget.dataset.companion; render(); });
+  on('#btn-avatar-next','click',()=>{ toast('🌍 Your SehatVerse is ready!'); go('home'); });
+
+  on('[data-zone]','click', e=>{
+    const zoneId = e.currentTarget.dataset.zone;
+    go('zoneIntro', {activeZone: zoneId, mythResult:null, activeMythIndex:0});
+  });
+
+  on('#btn-gratitude','click',()=> go('zoneIntro', {activeZone:'gratitude'}));
+
+  on('[data-quizstart]','click', e=>{
+    const [zone, lvl] = e.currentTarget.dataset.quizstart.split(':');
+    go('quiz', {activeZone:zone, activeLevel:Number(lvl), quizIndex:0, quizScore:0, quizAnswered:false});
+  });
+
+  on('[data-opt]','click', e=>{
+    if(state.quizAnswered) return;
+    const bank = QUIZ_BANK[state.activeZone][state.activeLevel];
+    const q = bank[state.quizIndex];
+    const chosen = Number(e.currentTarget.dataset.opt);
+    state.quizAnswered = true;
+    document.querySelectorAll('[data-opt]').forEach((btn,i)=>{
+      if(i===q.correct) btn.classList.add('correct');
+      else if(i===chosen) btn.classList.add('wrong');
+    });
+    if(chosen===q.correct){ state.quizScore++; addXP(15); }
+    document.querySelectorAll('[data-opt]').forEach(b=>b.disabled=true);
+    const box = document.createElement('div');
+    box.className='feedback-box'; box.style.marginTop='18px';
+    box.textContent = '💡 ' + q.exp;
+    const btn = document.createElement('button');
+    btn.className='btn btn-primary btn-block'; btn.style.marginTop='18px';
+    btn.id='btn-next-q';
+    btn.textContent = state.quizIndex+1<bank.length? 'Next Question →' : 'Finish Level →';
+    document.querySelector('.quiz-card').append(box, btn);
+    btn.addEventListener('click', nextQuizStep);
+  });
+
+  on('#btn-next-q','click', nextQuizStep);
+
+  on('#btn-zone-done','click', ()=>{
+    const zoneId = state.activeZone, lvl = state.activeLevel;
+    const bank = QUIZ_BANK[zoneId][lvl];
+    const pct = state.quizScore/bank.length;
+    if(!state.zoneProgress[zoneId]) state.zoneProgress[zoneId] = {};
+    if(pct>=0.5){
+      state.zoneProgress[zoneId][lvl] = 'done';
+      addXP(50);
+      const badge = BADGES.find(b=>b.zone===zoneId && b.level===lvl);
+      if(badge) awardBadge(badge.id);
+      markDaily(zoneId);
+    }
+    go('home');
+  });
+
+  on('[data-mythans]','click', e=>{
+    const m = MYTHS[state.activeMythIndex];
+    const said = e.currentTarget.dataset.mythans; // 'fact' or 'myth'
+    const correct = (said==='myth') === m.isMyth;
+    state.mythResult = correct? 'correct':'wrong';
+    if(correct) addXP(10);
+    render();
+  });
+  on('#btn-myth-next','click', ()=>{
+    if(state.activeMythIndex+1 < MYTHS.length){
+      state.activeMythIndex++; state.mythResult=null; render();
+    } else {
+      if(!state.zoneProgress['myth']) state.zoneProgress['myth']={};
+      state.zoneProgress['myth'][1]='done';
+      awardBadge('myth_hunter');
+      addXP(50);
+      toast('🏆 Myth Buster Tower cleared!');
+      go('home');
+    }
+  });
+
+  on('#btn-add-gratitude','click', addGratitudeEntry);
+  const input = document.getElementById('gratitude-input');
+  if(input){ input.addEventListener('keydown', e=>{ if(e.key==='Enter') addGratitudeEntry(); }); }
+}
+
+function nextQuizStep(){
+  const bank = QUIZ_BANK[state.activeZone][state.activeLevel];
+  if(state.quizIndex+1 < bank.length){
+    state.quizIndex++; state.quizAnswered=false; render();
+  } else {
+    go('quizResult');
+  }
+}
+
+const GRATITUDE_ICONS = ['❤️','⭐','🌱','🌈','☀️','💪','🧠'];
+function addGratitudeEntry(){
+  const input = document.getElementById('gratitude-input');
+  const text = input.value.trim();
+  if(!text) return;
+  const icon = GRATITUDE_ICONS[state.gratitude.length % GRATITUDE_ICONS.length];
+  state.gratitude.push({text, icon});
+  addXP(5);
+  markDaily('gratitude');
+  if(state.gratitude.length===1) awardBadge('gratitude_grower');
+  input.value='';
+  render();
+  document.getElementById('gratitude-input')?.focus();
+}
+
+render();
+</script>
+</body>
+</html>
